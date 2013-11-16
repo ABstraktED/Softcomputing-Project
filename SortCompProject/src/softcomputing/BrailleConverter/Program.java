@@ -13,8 +13,6 @@ import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 
 import org.neuroph.core.data.DataSet;
@@ -27,88 +25,102 @@ import com.googlecode.javacv.cpp.opencv_core.CvMat;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
 
 public class Program {
+	
+	// global variables
+	public static String imageDirPath = "C:\\Users\\luke\\Documents\\GitHub\\Softcomputing-Project\\SortCompProject\\src\\alphabet";		// path to folder with base, full-size images
+	public static String processedImageDirPath = "C:\\Users\\luke\\Documents\\GitHub\\Softcomputing-Project\\SortCompProject\\src\\processed";	// path to folder with processed images
+	public static int processedImageHeight = 20;
+	public static int processedImageWidth = 15;
+	
+	public static int thresholdForPreprocessing = 240;
+	
+	
 	/**
 	 * @param args
 	 * @throws FileNotFoundException
 	 */
 	public static void main(String[] args) throws FileNotFoundException {
 		System.out.println("Welcome at MLP program");
-		try {
-			File logsFile = new File("logs.txt");
-			FileWriter fw = new FileWriter(logsFile);
-			fw.write("Params \n");
-			fw.write("L1\t L2\t L3\t TF\t LnR\t XiT\t XeR\t BTCH\t DInS\t DOuS\t WghF\t WghT\n");
-			// set up variables
-			String imageDirPath = "C:\\Users\\luke\\workspace\\SoftCompProject\\src\\alphabet";				// œcie¿ka przeznaczona na pliki do przetworzenia
-			ArrayList<Integer> neuronsInLayers = new ArrayList<Integer>();
+		Consts.Initialize();
+		// set up variables
+			
+		// Network configuration
+			ArrayList<Integer> neuronsInLayers = new ArrayList<Integer>();							// neurons in particular layers
 			neuronsInLayers.clear();
-			neuronsInLayers.add(300);//15*20
-			neuronsInLayers.add(15);
-			neuronsInLayers.add(6);
-
-			double learningRate = 0.2;
-			int maxIteration = 100000;			//
-			double maxError = 0.2;				// warunki przerwania uczenia
-			boolean batchMode = false;
-			int dataSetInputSize = 300;//15*20
-			int dataSetOutputSize = 6; // rozpoznajemy 6 liter a,i,m,o,u,x
+			neuronsInLayers.add(300);																// 300 = 15 * 20 input
+			neuronsInLayers.add(15);																// neurons in hidden layer
+			neuronsInLayers.add(6);																	// 6 outputs (6 dots in braille alphabet) 
+		
+		// Preprocessing configuration
 			
 			
-			String folderBase = "C:\\Users\\luke\\workspace\\SoftCompProject\\src\\Test\\";					// œcie¿ka bazowa do folderów zawieraj¹cych obiekty treningowe - z podzia³em na klasy (w folderze jest jedna klasa)
-			ArrayList<String> classFoldersPathes = new ArrayList<String>();
-			classFoldersPathes.clear();
-			classFoldersPathes.add(folderBase + "A");		// foldery - z plikami testowymi - klasy
-			classFoldersPathes.add(folderBase + "I");
-			classFoldersPathes.add(folderBase + "M");
-			classFoldersPathes.add(folderBase + "O");
-			classFoldersPathes.add(folderBase + "U");
-			classFoldersPathes.add(folderBase + "X");
+		// Learning configuration
+			double learningRate = 0.2;																// learning rate
+			int maxIteration = 1000;																// maximal number of iterations	
+			double maxError = 0.2;																	// maximal acceptable error (to break learning process)
+			boolean batchMode = false;																// learning batch mode
+			int dataSetInputSize = 300;																// input data vector size 	(should be same as neurons in input layer)
+			int dataSetOutputSize = 6;																// 6 - output data vector size 	(should be same as neurons in output layer), we recognised 6 dots in letter
+		
+			ArrayList<String> lettersToProcess = new ArrayList<String>();
+			lettersToProcess.clear();
+			lettersToProcess.add("A");												// letters to process
+			lettersToProcess.add("B");
+			lettersToProcess.add("C");
+			lettersToProcess.add("D");
+			lettersToProcess.add("E");
+			/*lettersToProcess.add("F");
+			lettersToProcess.add("G");
+			lettersToProcess.add("H");
+			lettersToProcess.add("I");
+			lettersToProcess.add("J");
+			lettersToProcess.add("K");
+			lettersToProcess.add("L");
+			lettersToProcess.add("M");
+			lettersToProcess.add("N");
+			lettersToProcess.add("O");
+			lettersToProcess.add("P");
+			//lettersToProcess.add("Q");
+			lettersToProcess.add("R");
+			lettersToProcess.add("S");
+			lettersToProcess.add("T");
+			lettersToProcess.add("U");
+			//lettersToProcess.add("V");
+			lettersToProcess.add("W");
+			lettersToProcess.add("X");
+			lettersToProcess.add("Y");
+			lettersToProcess.add("Z");*/
 			
 			int randomWeightFrom = -1;
 			int randomWeightTo = 1;
 
+			
+			
+			
+			
 			/* select the mode of work */
 			if (args.length > 0 && args[0].equalsIgnoreCase("Preprocess")) {
-				Preprocess(imageDirPath, 0.2);
+				Preprocess(imageDirPath);
 			} else if (args.length > 0 && args[0].equalsIgnoreCase("Learn")) {
 				
 				//learn network
 				double error = NeuralNetworkLearning(neuronsInLayers,
 						TransferFunctionType.TANH, learningRate, maxIteration,
 						maxError, batchMode, dataSetInputSize,
-						dataSetOutputSize, classFoldersPathes,
+						dataSetOutputSize, lettersToProcess,
 						randomWeightFrom, randomWeightTo);
 				
-				System.out.println("Error computed");
-				// log results
-				fw.write(neuronsInLayers.get(0) + "\t" + neuronsInLayers.get(1)
-						+ "\t" + neuronsInLayers.get(2) + "\t" + "S" + "\t"
-						+ learningRate + "\t" + maxIteration + "\t" + maxError
-						+ "\t" + batchMode + "\t" + dataSetInputSize + "\t"
-						+ dataSetOutputSize + "\t" + randomWeightFrom + "\t"
-						+ randomWeightTo + " -------------------------------"
-						+ error + "\n");
+				System.out.println("Error computed : " + error);
 
 			} else {
 				System.out.println("Wrong parameters");
 			}
-			fw.write(neuronsInLayers.get(0) + "\t" + neuronsInLayers.get(1)
-					+ "\t" + neuronsInLayers.get(2) + "\t" + "S" + "\t"
-					+ learningRate + "\t" + maxIteration + "\t" + maxError
-					+ "\t" + batchMode + "\t" + dataSetInputSize + "\t"
-					+ dataSetOutputSize + "\t" + randomWeightFrom + "\t"
-					+ randomWeightTo + "\n");
 
 			System.out.println("Successfully finished");
-			fw.write("Finished");
-			fw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		
 	}
 
-	public static void Preprocess(String imageDirectoryPath, double noiseRatio) {
+	public static void Preprocess(String imageDirectoryPath) {
 		System.out.println("Preprocessing started.");
 		/* extract file path from folder */
 		ArrayList<ImageFileInfo> files = GetFileNamesList(imageDirectoryPath);
@@ -121,24 +133,18 @@ public class Program {
 			IplImage grayImage = IplImage.create(originalImg.cvSize(),
 					IPL_DEPTH_8U, 1);
 			cvCvtColor(originalImg, grayImage, CV_RGB2GRAY);
-
-			/* Add noise */
-			/*
-			 * 
-			 * To be implemented
-			 */
-			System.out.println("Noise ratio " + noiseRatio);
-
-			/* Threshold it */
-			IplImage imgThreshold = cvCreateImage(cvGetSize(originalImg), 8, 1);
-			cvThreshold(grayImage, imgThreshold, 128, 255, CV_THRESH_BINARY);
 			
 			/* Resize */
-			IplImage resizedImg = IplImage.create(15,20, imgThreshold.depth(), imgThreshold.nChannels());
-			cvResize(imgThreshold, resizedImg, CV_INTER_LINEAR);
+			IplImage resizedImg = IplImage.create(15,20, grayImage.depth(), grayImage.nChannels());
+			cvResize(grayImage, resizedImg, CV_INTER_LINEAR);
+			
+			/* Threshold it */
+			IplImage imgThreshold = cvCreateImage(cvGetSize(resizedImg), resizedImg.depth(), resizedImg.nChannels());
+			cvThreshold(resizedImg, imgThreshold, thresholdForPreprocessing, 255, CV_THRESH_BINARY);
+			
 			
 			/* Save image into file */
-			cvSaveImage(files.get(i).get_directoryPath() + "\\" + files.get(i).get_fileName() + "_thresholded.png", resizedImg);
+			cvSaveImage(processedImageDirPath + "\\" + files.get(i).get_fileName() + ".png", imgThreshold);
 			System.out.println("Successfully processed image :"
 					+ files.get(i).get_fileName());
 		}
@@ -149,9 +155,9 @@ public class Program {
 			TransferFunctionType transferFuncType, double learningRate,
 			int maxIteration, double maxError, boolean batchMode,
 			int dataSetInputSize, int dataSetOutputSize,
-			ArrayList<String> classFoldersPathes, int randomWeightFrom,
+			ArrayList<String> lettersToProcess, int randomWeightFrom,
 			int randomWeightTo) {
-		System.out.println("Learning option");
+		System.out.println("Setting learning options...");
 		MultiLayerPerceptron mlpNet = null;
 
 		// activation function
@@ -163,19 +169,16 @@ public class Program {
 		// Select training dataset
 		DataSet trainingDataset = new DataSet(dataSetInputSize,
 				dataSetOutputSize);
-		for (int i = 0; i < classFoldersPathes.size(); i++) {
-			ArrayList<ImageFileInfo> fileNames = GetFileNamesList(classFoldersPathes
-					.get(i));
-			System.out.println("file names detected for " + classFoldersPathes.get(i));
-			for (int j = 0; j < fileNames.size(); j++) { //fileNames.size()
+		for (int i = 0; i < lettersToProcess.size(); i++) 
+		{
+			String processedLetter = lettersToProcess.get(i);
+			ArrayList<ImageFileInfo> fileNames = GetFileNamesList(Consts.TrainingFolderPath.get(processedLetter));
+			for (int j = 0; j < fileNames.size(); j++) {
 				IplImage img = cvLoadImage(fileNames.get(j).get_filePath());
-				DataSetRow row = GenerateDataSetRowFromImage(img, i,
-						dataSetInputSize, classFoldersPathes.size());
+				DataSetRow row = GenerateDataSetRowFromImage(img, lettersToProcess.get(i),
+						dataSetInputSize);
 				trainingDataset.addRow(row);
-				System.out.println("dataset row added : " + j);
 			}
-			
-			System.out.println("folder processed " + classFoldersPathes.get(i));
 		}
 		// assigning values
 		BPLearningMethod.setLearningRate(learningRate);
@@ -184,33 +187,18 @@ public class Program {
 		BPLearningMethod.setBatchMode(batchMode);
 		BPLearningMethod.setTrainingSet(trainingDataset);
 		
-		System.out.println("Parameters for Backpropagation set");
+		System.out.println("Parameters for back propagation set..");
 		// select initial weights
 		mlpNet.randomizeWeights(randomWeightFrom, randomWeightTo);
 		// learning method
-		System.out.println("Weights randomized");
+		System.out.println("Weights randomized...");
+		System.out.println("Learning started...");
 		mlpNet.learn(trainingDataset, BPLearningMethod);
-		System.out.println("MLP learnt");
+		System.out.println("MLP learnt...");
+		
 		/*
-		 * Testing Network
+		 * Testing Network Error
 		 */
-
-		System.out.println("Learning error = "
-				+ BPLearningMethod.getTotalNetworkError());
-
-		// set network input
-		// mlpNet.setInput(1, 1, 0);
-
-		// calculate network
-		// mlpNet.calculate();
-
-		// get network output
-		// double[] networkOutput = mlpNet.getOutput();
-
-		// System.out.println("output : " + networkOutput[0] + " " +
-		// networkOutput[1]+ " " + networkOutput[2]);
-		// System.out.println("error " +
-		// BPLearningMethod.getTotalNetworkError());
 
 		return BPLearningMethod.getTotalNetworkError();
 	}
@@ -232,12 +220,11 @@ public class Program {
 	}
 
 	public static DataSetRow GenerateDataSetRowFromImage(IplImage image,
-			int classNo, int inputSize, int outputSize) {
+			String processedLetter, int inputSize) {
 		double[] input = new double[inputSize];
 		
 		CvMat imageMat = image.asCvMat();
 		int counter = 0;
-		System.out.println("DataSetRow");
 		for(int i=0; i<imageMat.rows(); i++)
 		{
 			for(int j=0; j< imageMat.cols(); j++)
@@ -247,25 +234,15 @@ public class Program {
 				if(value8Bit == 255)
 				{
 					input[counter] = 1;
-					System.out.print(1);
 				}
 				else
 				{
 					input[counter] = 0;
-					System.out.print(0);
 				}
 				counter++;
 			}
 		}
-
-		double[] desiredOutput = new double[outputSize];
-		for (int i = 0; i < outputSize; i++) {
-			if (i == classNo) {
-				desiredOutput[i] = 1;
-			} else {
-				desiredOutput[i] = 0;
-			}
-		}
+		double[] desiredOutput = Consts.BrailleDots.get(processedLetter);
 
 		DataSetRow row = new DataSetRow(input, desiredOutput);
 		return row;
