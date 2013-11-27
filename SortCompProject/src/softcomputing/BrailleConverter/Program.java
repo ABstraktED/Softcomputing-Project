@@ -37,6 +37,8 @@ public class Program {
 	
 	public static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	
+	public static Date date;
+	
 	//Configuration
 	
 	final static int INPUT_NEURONS = 300;			// 300 = 15 * 20 input
@@ -44,7 +46,7 @@ public class Program {
 	final static int OUTPUT_NEURONS = 6;			// 6 outputs 6 dots in braille alphabet) 
 		
 	public static double LEARNING_RATE = 0.2;  		// learning rate
-	final static int MAX_INTERATION = 1000;			// maximal number of iterations	
+	public static int MAX_ITERATION = 10000;		// maximal number of iterations	
 	public static double MAX_ERROR = 0.2;			// maximal acceptable error (to break learning process)
 	public static boolean BATCH_MODE = false;		// learning batch mode
 
@@ -125,8 +127,11 @@ public class Program {
 				
 				for(currentIteration=0;currentIteration < NUMBER_OF_EXECUTIONS ; currentIteration++) {
 					try {
+						//Getting date to add to network name
+						date = new Date();
+						
 						double error = NeuralNetworkLearning(neuronsInLayers,
-								TransferFunctionType.TANH, LEARNING_RATE, MAX_INTERATION,
+								TransferFunctionType.TANH, LEARNING_RATE, MAX_ITERATION,
 								MAX_ERROR, BATCH_MODE, DATASET_INPUT_SIZE,
 								DATASET_OUTPUT_SIZE, lettersToProcess,
 								randomWeightFrom, randomWeightTo);
@@ -134,8 +139,9 @@ public class Program {
 						
 						saveResultsToCsvFile(error,currentIteration);
 						
-						//Changing the learning rate ( depending on the initial value we can subtract or add to it )
-						LEARNING_RATE =+ 0.1; 
+						//Changing configuration after every iteration
+						LEARNING_RATE =+ 0.1;
+						MAX_ITERATION =- 1000;
 						
 					} catch (Exception e) {
 						// TODO: handle exception
@@ -163,6 +169,8 @@ public class Program {
 		    writer.append("\n");
 		    //ID
 		    writer.append(Integer.toString(currentIteration) + ", ");
+		    //NETWORK
+		    writer.append("network_" + dateFormat.format(date) + ".nnet" + ", ");
 		    //INPUT_NEURONS
 		    writer.append(Integer.toString(INPUT_NEURONS) + ", ");
 		    //HIDDEN_LAYER_NEURONS
@@ -171,8 +179,8 @@ public class Program {
 		    writer.append(Integer.toString(OUTPUT_NEURONS) + ", ");
 		    //LEARNING_RATE
 		    writer.append(Double.toString(LEARNING_RATE) + ", ");
-		    //MAX_INTERATION
-		    writer.append(Integer.toString(MAX_INTERATION) + ", ");
+		    //MAX_ITERATION
+		    writer.append(Integer.toString(MAX_ITERATION) + ", ");
 		    //MAX_ERROR
 		    writer.append(Double.toString(MAX_ERROR) + ", ");
 		    //BATCH_MODE
@@ -271,7 +279,6 @@ public class Program {
 		System.out.println("Learning started...");
 		mlpNet.learn(trainingDataset, BPLearningMethod);
 		
-		Date date = new Date();
 		
 		System.out.println();
 		System.out.println("MLP learnt...");
