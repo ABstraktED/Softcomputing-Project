@@ -5,16 +5,15 @@ import static com.googlecode.javacv.cpp.opencv_core.cvCreateImage;
 import static com.googlecode.javacv.cpp.opencv_core.cvGetSize;
 import static com.googlecode.javacv.cpp.opencv_highgui.cvLoadImage;
 import static com.googlecode.javacv.cpp.opencv_highgui.cvSaveImage;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_RGB2GRAY;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_THRESH_BINARY;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvCvtColor;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvThreshold;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 import org.neuroph.core.data.DataSet;
 import org.neuroph.core.data.DataSetRow;
@@ -28,32 +27,10 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 public class Program {
 	
 	// global variables
-	public static String imageDirPath = "C:\\Users\\luke\\Documents\\GitHub\\Softcomputing-Project\\SortCompProject\\src\\alphabet";			// path to folder with base, full-size images
+	public static String imageDirPath = "C:\\Users\\luke\\Documents\\GitHub\\Softcomputing-Project\\SortCompProject\\src\\alphabet";		// path to folder with base, full-size images
 	public static String processedImageDirPath = "C:\\Users\\luke\\Documents\\GitHub\\Softcomputing-Project\\SortCompProject\\src\\processed";	// path to folder with processed images
-	public static String csvFilePath = "C:\\Users\\luke\\Documents\\GitHub\\Softcomputing-Project\\SortCompProject\\Results\\results.csv";
-	public static String networkFilePath = "C:\\Users\\luke\\Documents\\GitHub\\Softcomputing-Project\\SortCompProject\\NeuralNetworks";
 	public static int processedImageHeight = 20;
 	public static int processedImageWidth = 15;
-	
-	public static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-	
-	//Configuration
-	
-	final static int INPUT_NEURONS = 300;			// 300 = 15 * 20 input
-	final static int HIDDEN_LAYER_NEURONS = 15;		// neurons in hidden layer
-	final static int OUTPUT_NEURONS = 6;			// 6 outputs 6 dots in braille alphabet) 
-		
-	public static double LEARNING_RATE = 0.2;  		// learning rate
-	final static int MAX_INTERATION = 1000;			// maximal number of iterations	
-	public static double MAX_ERROR = 0.2;			// maximal acceptable error (to break learning process)
-	public static boolean BATCH_MODE = false;		// learning batch mode
-
-
-	final static int DATASET_INPUT_SIZE = 300;		// input data vector size(should be same as neurons in input layer)
-	final static int DATASET_OUTPUT_SIZE = 6;		// 6 - output data vector size 	(should be same as neurons in output layer), we recognised 6 dots in letter
-	
-	final static int NUMBER_OF_EXECUTIONS = 10;	// Here you set up the number of application run's
-	public static int currentIteration;
 	
 	public static int thresholdForPreprocessing = 240;
 	
@@ -63,23 +40,27 @@ public class Program {
 	 * @throws FileNotFoundException
 	 */
 	public static void main(String[] args) throws FileNotFoundException {
-
 		System.out.println("Welcome at MLP program");
-
 		Consts.Initialize();
 		// set up variables
 			
 		// Network configuration
 			ArrayList<Integer> neuronsInLayers = new ArrayList<Integer>();							// neurons in particular layers
 			neuronsInLayers.clear();
-			neuronsInLayers.add(INPUT_NEURONS);																
-			neuronsInLayers.add(HIDDEN_LAYER_NEURONS);																
-			neuronsInLayers.add(OUTPUT_NEURONS);																	
+			neuronsInLayers.add(300);																// 300 = 15 * 20 input
+			neuronsInLayers.add(15);																// neurons in hidden layer
+			neuronsInLayers.add(6);																	// 6 outputs (6 dots in braille alphabet) 
 		
 		// Preprocessing configuration
 			
 			
-		// Learning configuration															
+		// Learning configuration
+			double learningRate = 0.2;																// learning rate
+			int maxIteration = 1000;																// maximal number of iterations	
+			double maxError = 0.2;																	// maximal acceptable error (to break learning process)
+			boolean batchMode = false;																// learning batch mode
+			int dataSetInputSize = 300;																// input data vector size 	(should be same as neurons in input layer)
+			int dataSetOutputSize = 6;																// 6 - output data vector size 	(should be same as neurons in output layer), we recognised 6 dots in letter
 		
 			ArrayList<String> lettersToProcess = new ArrayList<String>();
 			lettersToProcess.clear();
@@ -117,34 +98,19 @@ public class Program {
 			
 			
 			
-			
 			/* select the mode of work */
 			if (args.length > 0 && args[0].equalsIgnoreCase("Preprocess")) {
 				Preprocess(imageDirPath);
 			} else if (args.length > 0 && args[0].equalsIgnoreCase("Learn")) {
 				
-				for(currentIteration=0;currentIteration < NUMBER_OF_EXECUTIONS ; currentIteration++) {
-					try {
-						double error = NeuralNetworkLearning(neuronsInLayers,
-								TransferFunctionType.TANH, LEARNING_RATE, MAX_INTERATION,
-								MAX_ERROR, BATCH_MODE, DATASET_INPUT_SIZE,
-								DATASET_OUTPUT_SIZE, lettersToProcess,
-								randomWeightFrom, randomWeightTo);
-						
-						
-						saveResultsToCsvFile(error,currentIteration);
-						
-						//Changing the learning rate ( depending on the initial value we can subtract or add to it )
-						LEARNING_RATE =+ 0.1; 
-						
-					} catch (Exception e) {
-						// TODO: handle exception
-					}
-				}
+				//learn network
+				double error = NeuralNetworkLearning(neuronsInLayers,
+						TransferFunctionType.TANH, learningRate, maxIteration,
+						maxError, batchMode, dataSetInputSize,
+						dataSetOutputSize, lettersToProcess,
+						randomWeightFrom, randomWeightTo);
 				
-					
-				
-				
+				System.out.println("Error computed : " + error);
 
 			} else {
 				System.out.println("Wrong parameters");
@@ -152,47 +118,6 @@ public class Program {
 
 			System.out.println("Successfully finished");
 		
-	}
-	
-	public static void saveResultsToCsvFile(double error, int currentIteration) {
-		try
-		{
-		    FileWriter writer = new FileWriter(csvFilePath);
-	 
-		    //next row
-		    writer.append("\n");
-		    //ID
-		    writer.append(Integer.toString(currentIteration) + ", ");
-		    //INPUT_NEURONS
-		    writer.append(Integer.toString(INPUT_NEURONS) + ", ");
-		    //HIDDEN_LAYER_NEURONS
-		    writer.append(Integer.toString(HIDDEN_LAYER_NEURONS) + ", ");
-		    //OUTPUT_NEURONS
-		    writer.append(Integer.toString(OUTPUT_NEURONS) + ", ");
-		    //LEARNING_RATE
-		    writer.append(Double.toString(LEARNING_RATE) + ", ");
-		    //MAX_INTERATION
-		    writer.append(Integer.toString(MAX_INTERATION) + ", ");
-		    //MAX_ERROR
-		    writer.append(Double.toString(MAX_ERROR) + ", ");
-		    //BATCH_MODE
-		    writer.append(Boolean.toString(BATCH_MODE) + ", ");
-		    //DATASET_INPUT_SIZE
-		    writer.append(Integer.toString(DATASET_INPUT_SIZE) + ", ");
-		    //DATASET_OUTPUT_SIZE
-		    writer.append(Integer.toString(DATASET_OUTPUT_SIZE) + ", ");
-		    //NUMBER_OF_EXECUTIONS
-		    writer.append(Integer.toString(NUMBER_OF_EXECUTIONS) + ", ");
-		    //NETWORK_ERROR
-		    writer.append(Double.toString(error));
-	 
-		    writer.flush();
-		    writer.close();
-		}
-		catch(IOException e)
-		{
-		     e.printStackTrace();
-		} 
 	}
 
 	public static void Preprocess(String imageDirectoryPath) {
@@ -232,7 +157,6 @@ public class Program {
 			int dataSetInputSize, int dataSetOutputSize,
 			ArrayList<String> lettersToProcess, int randomWeightFrom,
 			int randomWeightTo) {
-
 		System.out.println("Setting learning options...");
 		MultiLayerPerceptron mlpNet = null;
 
@@ -270,12 +194,7 @@ public class Program {
 		System.out.println("Weights randomized...");
 		System.out.println("Learning started...");
 		mlpNet.learn(trainingDataset, BPLearningMethod);
-		
-		Date date = new Date();
-		
-		System.out.println();
 		System.out.println("MLP learnt...");
-		mlpNet.save(networkFilePath + "\\neuralNetwork_" + dateFormat.format(date) + ".nnet");
 		
 		/*
 		 * Testing Network Error
