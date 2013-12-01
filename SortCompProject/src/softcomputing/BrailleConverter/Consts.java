@@ -7,7 +7,8 @@ public class Consts {
 	public static Map<String,double[]> BrailleDots;
 	public static Map<String,String> TrainingFolderPath;
 	
-	public static String BaseTestFolderPath = "C:\\Users\\luke\\Documents\\GitHub\\Softcomputing-Project\\SortCompProject\\Test\\";
+	public static String HomePath = "C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\";
+	public static String BaseTestFolderPath = HomePath + "Test\\";
     public static void Initialize()
 	{
 		/*
