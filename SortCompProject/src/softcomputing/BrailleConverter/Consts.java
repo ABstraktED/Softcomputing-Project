@@ -6,8 +6,10 @@ import java.util.Map;
 public class Consts {
 	public static Map<String,double[]> BrailleDots;
 	public static Map<String,String> TrainingFolderPath;
+	// ---- C:\\Users\\Marcel Starczyk\\Desktop\\SoftcomputingProject\\
+	// ---- C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\
 	
-	public static String HomePath = "C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\";
+	public static String HomePath = "C:\\SoftcomputingProject\\SortCompProject\\";
 	public static String BaseTestFolderPath = HomePath + "Test\\";
     public static void Initialize()
 	{

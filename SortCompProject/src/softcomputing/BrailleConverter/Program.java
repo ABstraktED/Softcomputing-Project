@@ -8,14 +8,18 @@ import static com.googlecode.javacv.cpp.opencv_highgui.cvSaveImage;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 
+import org.neuroph.core.NeuralNetwork;
 import org.neuroph.core.data.DataSet;
 import org.neuroph.core.data.DataSetRow;
+import org.neuroph.core.learning.LearningRule;
 import org.neuroph.nnet.MultiLayerPerceptron;
 import org.neuroph.nnet.learning.BackPropagation;
 import org.neuroph.util.TransferFunctionType;
@@ -25,31 +29,40 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 
 public class Program {
 	
-	public static String HomePath = "C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\";
+	// ----- C:\\SoftcomputingProject\\SortCompProject\\
+	// ----- C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\
+	
+	public static String HomePath = "C:\\SoftcomputingProject\\SortCompProject\\";
 	// global variables
 	public static String imageDirPath = HomePath + "src\\alphabet";			// path to folder with base, full-size images
 	public static String processedImageDirPath = HomePath + "src\\processed";	// path to folder with processed images
-	public static String csvFilePath = HomePath + "Results\\results.csv";
-	public static String networkFilePath = HomePath + "NeuralNetworks";
+	
+	public static String whiteNoiseDirPath = HomePath + "src\\whiteNoise";
+	
+	public static String csvFilePath = HomePath + "results.csv";
+	public static String networkFilePath = HomePath + "NeuralNetworks\\network_82_set4.nnet";
+	public static String networkName = "network_82_set4";
 	public static int processedImageHeight = 20;
 	public static int processedImageWidth = 15;
+	
+	public static double[] networkOutput;
 	
 	//public static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	
 	public static Date date;
 	
 	//Configuration
-	final static int HIDDEN_LAYER_NEURONS_MAX = 17;
-	final static int HIDDEN_LAYER_NEURONS_MIN = 13;
+	final static int HIDDEN_LAYER_NEURONS_MAX = 20;
+	final static int HIDDEN_LAYER_NEURONS_MIN = 10;
 	
-	final static double LEARNING_RATE_MAX = 0.15;
+	final static double LEARNING_RATE_MAX = 0.20;
 	final static double LEARNING_RATE_MIN = 0.05;
-	final static int MAX_ITERATION_MAX = 10000;
+	final static int MAX_ITERATION_MAX = 20000;
 	
 	final static int INPUT_NEURONS = 300;			// 300 = 15 * 20 input
 	final static int OUTPUT_NEURONS = 6;			// 6 outputs 6 dots in braille alphabet) 
 		
-	public static int MAX_ITERATION = 10000;		// maximal number of iterations	
+	public static int MAX_ITERATION = 20000;		// maximal number of iterations	
 	public static double MAX_ERROR = 0.1;			// maximal acceptable error (to break learning process)
 	public static boolean BATCH_MODE = false;		// learning batch mode
 
@@ -152,16 +165,57 @@ public class Program {
 					}
 				}
 				
-					
-				
-				
 
-			} else {
+			}
+			else if (args.length > 0 && args[0].equalsIgnoreCase("Recognize")){
+				System.out.println("Starting the recognizing process...");
+				for (int i = 0; i < lettersToProcess.size(); i++) 
+				{
+					
+					String processedLetter = lettersToProcess.get(i);
+					ArrayList<ImageFileInfo> fileNames = GetFileNamesList(Consts.TrainingFolderPath.get(processedLetter));
+					for (int j = 0; j < fileNames.size(); j++) {
+
+						networkOutput = NeuralNetworkRecognizing(networkFilePath,DATASET_INPUT_SIZE,lettersToProcess,fileNames,i,j);
+						saveRecognitionToFile(networkOutput, processedLetter, j, networkName);
+						
+					}
+				}
+				
+				
+				
+			}else {
+			
 				System.out.println("Wrong parameters");
 			}
 
 			System.out.println("===== Successfully finished =====");
 		
+	}
+	
+	public static void saveRecognitionToFile(double[] networkOutput, String processedLetter, int j, String networkName) {
+		try
+		{
+		    FileWriter writer = new FileWriter(HomePath + networkName + "_results.csv" ,true);
+	 
+		    
+		    writer.append("==========================================================================================================================================\n");
+		    writer.append(processedLetter + j + "\n");
+		    writer.append("Expectation: [" + Consts.BrailleDots.get(processedLetter)[0] + " , " + Consts.BrailleDots.get(processedLetter)[1] + " , "
+		    		+ Consts.BrailleDots.get(processedLetter)[2] + " , " + Consts.BrailleDots.get(processedLetter)[3] + " , "
+		    		+ Consts.BrailleDots.get(processedLetter)[4] + " , " + Consts.BrailleDots.get(processedLetter)[5] + "]\n");
+		    writer.append("Prediction: = [ " + networkOutput[0] + " , " + networkOutput[1] + " , " + networkOutput[2] + " , "
+		    + networkOutput[3] + " , " + networkOutput[4] + " , " + networkOutput[5] +" ]\n");
+		    writer.append("==========================================================================================================================================\n\n");
+		    
+	 
+		    writer.flush();
+		    writer.close();
+		}
+		catch(IOException e)
+		{
+		     e.printStackTrace();
+		} 
 	}
 	
 	public static void saveResultsToCsvFile(double error, int currentIteration, double learning_rate, int neuronsInHiddenLayer, int MaxIter) {
@@ -235,6 +289,68 @@ public class Program {
 			System.out.println("Successfully processed image :"
 					+ files.get(i).get_fileName());
 		}
+	}
+	
+	public static void whiteNoise(){
+		
+	}
+	
+	public static void noiseInOneRow(){
+		
+	}
+	
+	public static void whiteLines(){
+		
+	}
+	
+	public static void letterCovering(){
+		
+	}
+	
+	public static double[] NeuralNetworkRecognizing(String networkPath, int dataSetInputSize, ArrayList<String> lettersToProcess, ArrayList<ImageFileInfo> fileNames, int i, int j){
+		
+		double[] inputVector = new double[dataSetInputSize];
+		
+		InputStream networkInputStream = null;
+		try {
+			networkInputStream = new FileInputStream(networkPath);
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		
+		String testedLetter = lettersToProcess.get(i);
+		IplImage img = cvLoadImage(fileNames.get(j).get_filePath());
+		inputVector = GenerateInputVectorFromImage(img, lettersToProcess.get(j),dataSetInputSize);
+		
+		
+		/*
+		for (int i = 0; i < lettersToProcess.size(); i++) 
+		{
+			String processedLetter = lettersToProcess.get(i);
+			ArrayList<ImageFileInfo> fileNames = GetFileNamesList(Consts.TrainingFolderPath.get(processedLetter));
+			for (int j = 0; j < fileNames.size(); j++) {
+				IplImage img = cvLoadImage(fileNames.get(j).get_filePath());
+				inputVector = GenerateInputVectorFromImage(img, lettersToProcess.get(i),
+						dataSetInputSize);
+				
+			}
+		}
+		*/
+		
+		// load network
+		NeuralNetwork neuralNetwork = NeuralNetwork.load(networkInputStream);
+			
+		// set input to the network
+		neuralNetwork.setInput(inputVector);
+		// calculate the network 
+		neuralNetwork.calculate();
+		// get network output
+		double[] networkOutput = neuralNetwork.getOutput();
+		return networkOutput;
+		
 	}
 
 	public static double NeuralNetworkLearning(
@@ -313,8 +429,7 @@ public class Program {
 		return filePaths;
 	}
 
-	public static DataSetRow GenerateDataSetRowFromImage(IplImage image,
-			String processedLetter, int inputSize) {
+	public static DataSetRow GenerateDataSetRowFromImage(IplImage image,String processedLetter, int inputSize) {
 		double[] input = new double[inputSize];
 		
 		CvMat imageMat = image.asCvMat();
@@ -341,4 +456,32 @@ public class Program {
 		DataSetRow row = new DataSetRow(input, desiredOutput);
 		return row;
 	}
+
+
+
+public static double[] GenerateInputVectorFromImage(IplImage image,String processedLetter, int inputSize) {
+	double[] input = new double[inputSize];
+	
+	CvMat imageMat = image.asCvMat();
+	int counter = 0;
+	for(int i=0; i<imageMat.rows(); i++)
+	{
+		for(int j=0; j< imageMat.cols(); j++)
+		{
+			double value8Bit = imageMat.get(i, j);
+			
+			if(value8Bit == 255)
+			{
+				input[counter] = 1;
+			}
+			else
+			{
+				input[counter] = 0;
+			}
+			counter++;
+		}
+		
+	}
+	return input;
+}
 }
