@@ -9,7 +9,7 @@ public class Consts {
 	// ---- C:\\Users\\Marcel Starczyk\\Desktop\\SoftcomputingProject\\
 	// ---- C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\
 	
-	public static String HomePath = "C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\";
+	public static String HomePath = "C:\\SoftcomputingProject\\SortCompProject\\";
 	public static String BaseTestFolderPath = HomePath + "Test\\";
     public static void Initialize()
 	{

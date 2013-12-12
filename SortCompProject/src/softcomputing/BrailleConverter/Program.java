@@ -33,7 +33,7 @@ public class Program {
 	// ----- C:\\SoftcomputingProject\\SortCompProject\\
 	// ----- C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\
 
-	public static String HomePath = "C:\\Users\\luke\\Git\\Softcomputing-Project\\SortCompProject\\";
+	public static String HomePath = "C:\\SoftcomputingProject\\SortCompProject\\";
 	// global variables
 	public static String imageDirPath = HomePath + "src\\alphabet"; // path to
 																	// folder
@@ -52,13 +52,14 @@ public class Program {
 
 	public static String csvFilePath = HomePath + "results.csv";
 	public static String networkFilePath = HomePath
-			+ "NeuralNetworks\\network_82_set4.nnet";
-	public static String networkName = "network_82_set4";
+			+ "NeuralNetworks\\network_44_set3.nnet";
+	public static String networkName = "network_44_set3";
 	public static int processedImageHeight = 20; // number of rows
 	public static int processedImageWidth = 15; // number of columns
 
 	public static double[] networkOutput;
-	public static double distortionRate = 0.2; // rate to 
+	public static float distortionRate = 0.0f; // rate to 
+	public static Random random = new Random();
 	
 
 	// public static DateFormat dateFormat = new
@@ -185,19 +186,26 @@ public class Program {
 		} else if (args.length > 0 && args[0].equalsIgnoreCase("Recognize")) {
 			System.out.println("Starting the recognizing process...");
 			for (int i = 0; i < lettersToProcess.size(); i++) {
-
+				
 				String processedLetter = lettersToProcess.get(i);
 				ArrayList<ImageFileInfo> fileNames = GetFileNamesList(Consts.TrainingFolderPath
 						.get(processedLetter));
 				for (int j = 0; j < fileNames.size(); j++) {
-
+					
+					if( distortionRate < 0.9){
+						distortionRate = distortionRate + 0.1f;
+					}
+					else
+						distortionRate = 0.0f;
+					
 					networkOutput = NeuralNetworkRecognizing(networkFilePath,
 							DATASET_INPUT_SIZE, lettersToProcess, fileNames, i,
 							j);
 					saveRecognitionToFile(networkOutput, processedLetter, j,
-							networkName);
-
+							"WHITENOISE");
+					
 				}
+				
 			}
 
 		} else {
@@ -384,9 +392,26 @@ public class Program {
 	}
     //TODO
 	public static double[] letterCovering(double[] inputVector, double distortionRatio) throws Exception {
-		//double[] outputVector = new double[inputVector.length];
-		 throw new Exception("Not implemented"); 
-		//return outputVector;
+		double[] outputVector = new double[inputVector.length];
+
+		if (distortionRatio > 1 || distortionRatio < 0) {
+			throw new Exception("Distortion ratio must be value from range <0,1>");
+		}
+		Random r = new Random();
+		r.nextDouble();
+		for (int i = 0; i < processedImageHeight; i++) {
+			if (i < distortionRatio*20) {
+				for (int j = i * processedImageWidth; j < ((i + 1) * processedImageWidth); j++) {
+						outputVector[j] = 0;
+				}
+			} else {
+				for (int j = i * processedImageWidth; j < ((i + 1) * processedImageWidth); j++) {
+					outputVector[j] = inputVector[j];
+				}
+			}
+		}
+		
+		return outputVector;
 	}
 
 	public static double[] NeuralNetworkRecognizing(String networkPath,
@@ -407,7 +432,7 @@ public class Program {
 		IplImage img = cvLoadImage(fileNames.get(j).get_filePath());
 		inputVector = GenerateInputVectorFromImage(img,
 				lettersToProcess.get(j), dataSetInputSize);
-
+		
 		/*
 		 * for (int i = 0; i < lettersToProcess.size(); i++) { String
 		 * processedLetter = lettersToProcess.get(i); ArrayList<ImageFileInfo>
@@ -424,8 +449,8 @@ public class Program {
 		// load network
 		NeuralNetwork neuralNetwork = NeuralNetwork.load(networkInputStream);
 		
-		inputVector = IntroduceDistortion(inputVector, distortionRate, DistortionType.NONE);
-		
+		inputVector = IntroduceDistortion(inputVector, distortionRate, DistortionType.WHITE_NOISE);
+		PrintOutVector(inputVector, testedLetter);
 		// set input to the network
 		neuralNetwork.setInput(inputVector);
 		// calculate the network
